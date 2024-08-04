@@ -1,10 +1,15 @@
 package main
 
-import rl "github.com/gen2brain/raylib-go/raylib"
+import (
+	"fmt"
+	"log"
 
-const ROWS int32 = 12
-const COLUMNS int32 = 12
-const CELL_SIZE int32 = 50
+	rl "github.com/gen2brain/raylib-go/raylib"
+)
+
+const ROWS int32 = 9
+const COLUMNS int32 = 9
+const CELL_SIZE int32 = 150
 
 const WALL_CHAR byte = 'x'
 
@@ -23,7 +28,7 @@ func generateWallFilledMatrix() *[][]byte {
 	return &matrix
 }
 
-func main() {
+func win() {
 	const windowWidth int32 = COLUMNS * CELL_SIZE
 	const windowHeight int32 = ROWS * CELL_SIZE
 
@@ -34,7 +39,26 @@ func main() {
 
 	matrix := generateWallFilledMatrix()
 
+	visitedIdx := 0
+	fillInterval := float32(0.2)
+	intervalAccumulator := float32(0.0)
+	readyToDrawEdges := []*Edge{}
+
+	resultMst := RunPrims(matrix, &GridNode{0, 0}, WALL_CHAR)
+	if len(resultMst) != int(ROWS*COLUMNS)-1 {
+		log.Fatalf("Incorrect result returned from Prims. Expected %d results but got %d", int(ROWS*COLUMNS)-1, len(resultMst))
+	}
+
 	for !rl.WindowShouldClose() {
+		dt := rl.GetFrameTime()
+		intervalAccumulator += fillInterval * dt
+
+		if visitedIdx < len(resultMst) && intervalAccumulator > fillInterval {
+			readyToDrawEdges = append(readyToDrawEdges, resultMst[visitedIdx])
+			visitedIdx += 1
+			intervalAccumulator = 0
+		}
+
 		rl.BeginDrawing()
 
 		rl.ClearBackground(rl.RayWhite)
@@ -49,9 +73,32 @@ func main() {
 				}
 
 				rl.DrawRectangle(c*CELL_SIZE, r*CELL_SIZE, CELL_SIZE, CELL_SIZE, cellColor)
+
+				if len(readyToDrawEdges) > 0 {
+					for _, edge := range readyToDrawEdges {
+						if r == int32(edge.To.Row) && c == int32(edge.To.Column) {
+							rl.DrawLine(c*CELL_SIZE, r*CELL_SIZE, c*CELL_SIZE+CELL_SIZE, r*CELL_SIZE, rl.RayWhite)
+							rl.DrawLine(c*CELL_SIZE, r*CELL_SIZE, c*CELL_SIZE, r*CELL_SIZE+CELL_SIZE, rl.RayWhite)
+						}
+					}
+				}
 			}
 		}
 
 		rl.EndDrawing()
 	}
+}
+
+func main() {
+	matrix := generateWallFilledMatrix()
+    passages := RunMazeGeneratingPrims(matrix, &GridNode{0, 0}, WALL_CHAR)
+    
+    fmt.Println(len(passages))
+    
+    for r := range len(*matrix) {
+        for c := range len((*matrix)[0]) {
+            fmt.Print(string((*matrix)[r][c]))
+        }
+        fmt.Println()
+    }
 }

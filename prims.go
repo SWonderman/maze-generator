@@ -136,8 +136,9 @@ func RunPrims(matrix *[][]byte, start *GridNode, obstacleChar byte) []*Edge {
 	return minimumSpanningTree
 }
 
-func RunMazeGeneratingPrims(matrix *[][]byte, start *GridNode, obstacleChar byte) {
+func RunMazeGeneratingPrims(matrix *[][]byte, start *GridNode, obstacleChar byte) []*GridNode {
 	visited := []*GridNode{}
+    passages := []*GridNode{}
 	// NOTE: In this version of the algorithm, the pqueue is really just a list/array
 	// from which values will be drawn at 'random'
 	frontiers := []*PrimsNode{}
@@ -172,6 +173,7 @@ func RunMazeGeneratingPrims(matrix *[][]byte, start *GridNode, obstacleChar byte
 			visited = append(visited, frontier.CurrentNode)
 
 			(*matrix)[frontier.CurrentNode.Row][frontier.CurrentNode.Column] = '+'
+            passages = append(passages, frontier.CurrentNode)
 
 			for _, edge := range frontier.CurrentNode.GetNeighbours(matrix, obstacleChar) {
 				if !containsNode(visited, edge.To) {
@@ -180,6 +182,7 @@ func RunMazeGeneratingPrims(matrix *[][]byte, start *GridNode, obstacleChar byte
 				}
 			}
 		}
-
 	}
+
+    return passages
 }
