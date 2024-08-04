@@ -15,37 +15,6 @@ type GridNode struct {
 	Column int
 }
 
-func (node *GridNode) GetWallNeighbours(matrix *[][]byte, wallChar byte) []*Edge {
-	var edges []*Edge
-
-	row := node.Row
-	column := node.Column
-
-	orthogonalDirectionWeight := 1.0
-
-	// TOP
-	if row-1 >= 0 && (*matrix)[row-1][column] == wallChar {
-		edges = append(edges, &Edge{node, &GridNode{Row: row - 1, Column: column}, orthogonalDirectionWeight})
-	}
-
-	// DOWN
-	if row+1 <= len(*matrix)-1 && (*matrix)[row+1][column] == wallChar {
-		edges = append(edges, &Edge{node, &GridNode{Row: row + 1, Column: column}, orthogonalDirectionWeight})
-	}
-
-	// RIGHT
-	if column+1 <= len((*matrix)[0])-1 && (*matrix)[row][column+1] == wallChar {
-		edges = append(edges, &Edge{node, &GridNode{Row: row, Column: column + 1}, orthogonalDirectionWeight})
-	}
-
-	// LEFT
-	if column-1 >= 0 && (*matrix)[row][column-1] == wallChar {
-		edges = append(edges, &Edge{node, &GridNode{Row: row, Column: column - 1}, orthogonalDirectionWeight})
-	}
-
-	return edges
-}
-
 func (node *GridNode) GetNeighbours(matrix *[][]byte, wallChar byte) []*Edge {
 	var edges []*Edge
 
@@ -136,19 +105,21 @@ func RunPrims(matrix *[][]byte, start *GridNode, obstacleChar byte) []*Edge {
 	return minimumSpanningTree
 }
 
-func RunMazeGeneratingPrims(matrix *[][]byte, start *GridNode, obstacleChar byte) []*GridNode {
+// Slightly modified version of Prim's algortihm to generate a mazes inside a wall-filled matrix instead of finding a MST
+func RunMazeGeneratingPrims(matrix [][]byte, start *GridNode, obstacleChar byte) []*GridNode {
 	visited := []*GridNode{}
-    passages := []*GridNode{}
-	// NOTE: In this version of the algorithm, the pqueue is really just a list/array
+	passages := []*GridNode{}
+	// NOTE: In this version of the algorithm, the pqueue is just a list/array
 	// from which values will be drawn at 'random'
 	frontiers := []*PrimsNode{}
 
 	startPrimsNode := &PrimsNode{start, nil, nil, 0}
-	(*matrix)[startPrimsNode.CurrentNode.Row][startPrimsNode.CurrentNode.Column] = '+'
+	matrix[startPrimsNode.CurrentNode.Row][startPrimsNode.CurrentNode.Column] = '+'
+	passages = append(passages, startPrimsNode.CurrentNode)
 
 	frontiers = append(frontiers, startPrimsNode)
 
-	for _, edge := range start.GetNeighbours(matrix, obstacleChar) {
+	for _, edge := range start.GetNeighbours(&matrix, obstacleChar) {
 		primsNode := &PrimsNode{edge.To, edge, startPrimsNode, edge.Weight}
 		frontiers = append(frontiers, primsNode)
 	}
@@ -158,24 +129,24 @@ func RunMazeGeneratingPrims(matrix *[][]byte, start *GridNode, obstacleChar byte
 		frontier := frontiers[randomFrontierIdx]
 		frontiers = append(frontiers[:randomFrontierIdx], frontiers[randomFrontierIdx+1:]...)
 
-		passagesAroundTheFrontier := 0
-		for _, edge := range frontier.CurrentNode.GetNeighbours(matrix, obstacleChar) {
-			if (*matrix)[edge.To.Row][edge.To.Column] == '+' {
-				passagesAroundTheFrontier += 1
-			}
-		}
-
 		if containsNode(visited, frontier.CurrentNode) {
 			continue
+		}
+
+		passagesAroundTheFrontier := 0
+		for _, edge := range frontier.CurrentNode.GetNeighbours(&matrix, obstacleChar) {
+			if matrix[edge.To.Row][edge.To.Column] == '+' {
+				passagesAroundTheFrontier += 1
+			}
 		}
 
 		if passagesAroundTheFrontier == 1 {
 			visited = append(visited, frontier.CurrentNode)
 
-			(*matrix)[frontier.CurrentNode.Row][frontier.CurrentNode.Column] = '+'
-            passages = append(passages, frontier.CurrentNode)
+			matrix[frontier.CurrentNode.Row][frontier.CurrentNode.Column] = '+'
+			passages = append(passages, frontier.CurrentNode)
 
-			for _, edge := range frontier.CurrentNode.GetNeighbours(matrix, obstacleChar) {
+			for _, edge := range frontier.CurrentNode.GetNeighbours(&matrix, obstacleChar) {
 				if !containsNode(visited, edge.To) {
 					primsNode := &PrimsNode{edge.To, edge, frontier, edge.Weight}
 					frontiers = append(frontiers, primsNode)
@@ -184,5 +155,5 @@ func RunMazeGeneratingPrims(matrix *[][]byte, start *GridNode, obstacleChar byte
 		}
 	}
 
-    return passages
+	return passages
 }
