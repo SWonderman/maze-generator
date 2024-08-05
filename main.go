@@ -1,6 +1,7 @@
 package main
 
 import (
+    "math/rand"
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
@@ -49,7 +50,7 @@ func main() {
 	rl.SetTargetFPS(60)
 
 	matrix := generateWallFilledMatrix()
-	passages := RunMazeGeneratingPrims(*generateWallFilledMatrix(), &GridNode{0, 0}, WALL_CHAR)
+	passages := RunMazeGeneratingPrims(*generateWallFilledMatrix(), &GridNode{rand.Intn(int(ROWS)), rand.Intn(int(COLUMNS))}, WALL_CHAR)
 
 	visitedIdx := 0
 	fillInterval := float32(0.01)
